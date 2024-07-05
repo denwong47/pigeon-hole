@@ -87,7 +87,7 @@ func LoginUser(
 func LogoutUser(
 	ctx context.Context,
 	authManager *auth.AuthManager,
-	input *struct{},
+	input *LogoutUserRequest,
 ) (*LogoutUserResponse, error) {
 	token, token_ok := GetTokenFromContext(ctx)
 	user, user_ok := GetUserFromContext(ctx)
@@ -106,6 +106,31 @@ func LogoutUser(
 	} else {
 		return &LogoutUserResponse{}, huma.Error401Unauthorized("Cannot logout without authorisation token.", errorMessages.ErrUnauthorized)
 	}
+}
+
+// GetUserPermission returns the permission level of the user.
+func GetUserPermission(
+	ctx context.Context,
+	authManager *auth.AuthManager,
+	input *GetUserPermissionRequest,
+) (*GetUserPermissionResponse, error) {
+	_, token_ok := GetTokenFromContext(ctx)
+	user, user_ok := GetUserFromContext(ctx)
+
+	if !token_ok {
+		return &GetUserPermissionResponse{}, huma.Error401Unauthorized("Cannot get permission without authorisation token.", errorMessages.ErrUnauthorized)
+	}
+	if !user_ok {
+		return &GetUserPermissionResponse{}, huma.Error401Unauthorized("Cannot get permission without user context.", errorMessages.ErrUnauthorized)
+	}
+
+	if user.Email == "" {
+		return &GetUserPermissionResponse{}, huma.Error401Unauthorized("Cannot get permission without valid user.", errorMessages.ErrUnauthorized)
+	}
+
+	return &GetUserPermissionResponse{
+		Body: user.Privileges,
+	}, nil
 }
 
 // GetKey retrieves the value for a given key.

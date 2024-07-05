@@ -70,45 +70,117 @@ func main() {
 		// address.
 
 		// `AddUser``
-		huma.Put(api, "/user", interfaces.MinimumTimeReturn(
+		huma.Register(api, huma.Operation{
+			Method:  http.MethodPut,
+			Path:    "/user",
+			Summary: "Add a new user",
+			Description: `Add a new user to the system. The user will be created with the provided
+			name, email, and password. The user type will default to "standard" if "type" is not provided.` + loopbackOnly,
+			Errors: []int{200, 403, 408, 500},
+		}, interfaces.MinimumTimeReturn(
 			time.Second,
 			interfaces.MustBeCalledFromLoopBack(interfaces.UsesAuthManager(authManager, interfaces.AddUser)),
 		))
 		// `RemoveUser``
-		huma.Delete(api, "/user/{email}", interfaces.MinimumTimeReturn(
+		huma.Register(api, huma.Operation{
+			Method:  http.MethodDelete,
+			Path:    "/user/{email}",
+			Summary: "Remove a user",
+			Description: `Remove a user from the system. The user will be removed from the system
+			based on the provided email address. This action is irreversible.` + loopbackOnly,
+			Errors: []int{200, 401, 403, 404, 500},
+		}, interfaces.MinimumTimeReturn(
 			time.Second,
 			interfaces.MustBeCalledFromLoopBack(interfaces.UsesAuthManager(authManager, interfaces.RemoveUser)),
 		))
 		// `LoginUser``
-		huma.Post(api, "/login", interfaces.MinimumTimeReturn(
+		huma.Register(api, huma.Operation{
+			Method:  http.MethodPost,
+			Path:    "/login",
+			Summary: "Login",
+			Description: fmt.Sprintf(
+				`Login to the system. This will return a base64 token
+				that can be used to authenticate future requests. The token will
+				expire after %v. To use the token, send it in the Authorization header
+				as: <pre>Bearer &lt;token&gt;</pre>`,
+				userOptions.TokenExpiration,
+			),
+			Errors: []int{200, 401, 500},
+		}, interfaces.MinimumTimeReturn(
 			time.Second,
 			interfaces.UsesAuthManager(authManager, interfaces.LoginUser),
 		))
 		// `LogoutUser``
-		huma.Get(api, "/logout", interfaces.UsesAuthManager(authManager, interfaces.LogoutUser))
+		huma.Register(api, huma.Operation{
+			Method:  http.MethodPost,
+			Path:    "/logout",
+			Summary: "Logout",
+			Description: `Logout of the system. This will invalidate the current token and
+			prevent it from being used in future requests.` + requiresBearerAuth,
+			Errors: []int{200, 401},
+		}, interfaces.UsesAuthManager(authManager, interfaces.LogoutUser))
+
+		// `GetUserPermission``
+		huma.Register(api, huma.Operation{
+			Method:      http.MethodGet,
+			Path:        "/user/permission",
+			Summary:     "Get User Permission",
+			Description: `Get the permission of the user. This will return the permission of the user based on the provided token.` + requiresBearerAuth,
+			Errors:      []int{200, 401},
+		}, interfaces.UsesAuthManager(authManager, interfaces.GetUserPermission))
 
 		kvc := keyValue.NewCache()
 		// Add the Key Value endpoints
 
 		// `GetKey``
-		huma.Get(api, "/key/{key}", interfaces.UsesAuthManagerAndKeyValueCache(authManager, &kvc, interfaces.GetKey))
-		// `PatchKey``
-		huma.Patch(api, "/key/{key}", interfaces.MaximumTimeReturn(
+		huma.Register(api, huma.Operation{
+			Method:      http.MethodGet,
+			Path:        "/key/{key}",
+			Summary:     "Get Data by Key",
+			Description: `Fetch bytes data by the provided key.` + userPermissionsNote + requiresBearerAuth,
+			Errors:      []int{200, 401, 403, 404},
+		}, interfaces.UsesAuthManagerAndKeyValueCache(authManager, &kvc, interfaces.GetKey))
+		// `PatchKey`
+		huma.Register(api, huma.Operation{
+			Method:      http.MethodPatch,
+			Path:        "/key/{key}",
+			Summary:     "Update Data by Key",
+			Description: `Update bytes data by the provided key, only if the key already exists.` + userPermissionsNote + requiresBearerAuth,
+			Errors:      []int{200, 401, 403, 404, 504},
+		}, interfaces.MaximumTimeReturn(
 			options.Timeout,
 			interfaces.UsesAuthManagerAndKeyValueCache(authManager, &kvc, interfaces.PatchKey)),
 		)
-		// `PutKey``
-		huma.Put(api, "/key/{key}", interfaces.MaximumTimeReturn(
+		// `PutKey`
+		huma.Register(api, huma.Operation{
+			Method:      http.MethodPut,
+			Path:        "/key/{key}",
+			Summary:     "Add new Data by Key",
+			Description: `Add bytes data to a new key. This will only succeed if the key does not already exist.` + userPermissionsNote + requiresBearerAuth,
+			Errors:      []int{200, 401, 403, 408, 504},
+		}, interfaces.MaximumTimeReturn(
 			options.Timeout,
 			interfaces.UsesAuthManagerAndKeyValueCache(authManager, &kvc, interfaces.PutKey)),
 		)
-		// `PostKey``
-		huma.Post(api, "/key/{key}", interfaces.MaximumTimeReturn(
+		// `PostKey`
+		huma.Register(api, huma.Operation{
+			Method:      http.MethodPost,
+			Path:        "/key/{key}",
+			Summary:     "Add or update Data by Key",
+			Description: `Upsert bytes data by the provided key.` + userPermissionsNote + requiresBearerAuth,
+			Errors:      []int{200, 401, 403, 504},
+		}, interfaces.MaximumTimeReturn(
 			options.Timeout,
 			interfaces.UsesAuthManagerAndKeyValueCache(authManager, &kvc, interfaces.PostKey)),
 		)
 		// `DeleteKey``
-		huma.Delete(api, "/key/{key}", interfaces.UsesAuthManagerAndKeyValueCache(authManager, &kvc, interfaces.DeleteKey))
+		huma.Register(api, huma.Operation{
+			Method:      http.MethodDelete,
+			Path:        "/key/{key}",
+			Summary:     "Delete Data by Key",
+			Description: `Delete the provided key from the cache.` + userPermissionsNote + requiresBearerAuth,
+			Errors:      []int{200, 401, 403, 404},
+		}, interfaces.UsesAuthManagerAndKeyValueCache(authManager, &kvc, interfaces.DeleteKey))
 
 		server := http.Server{
 			Addr:    fmt.Sprintf("%s:%d", options.Host, options.Port),

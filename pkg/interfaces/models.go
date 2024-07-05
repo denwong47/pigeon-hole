@@ -6,6 +6,7 @@ import (
 
 	"github.com/denwong47/pigeon-hole/pkg/auth"
 	keyValue "github.com/denwong47/pigeon-hole/pkg/key_value"
+	"github.com/denwong47/pigeon-hole/pkg/users"
 )
 
 // Short Hand for the EndpointHandler function signature.
@@ -19,7 +20,7 @@ type EndpointHandlerWithKeyValueCache[T, R any] func(ctx context.Context, authMa
 
 // KeyRequest is the request object for all endpoints that takes a single key as input.
 type KeyRequest struct {
-	Authorization string `header:"Authorization" example:"Bearer myToken" doc:"The bearer token for authorization. No other form of authorization is supported."`
+	Authorization string `header:"Authorization" doc:"The bearer token for authorization. No other form of authorization is supported." example:"Bearer token"`
 	Key           string `path:"key" maxLength:"1024" example:"myObjectKey" doc:"The object key of the desired delivery. Obtain this from the sender."`
 }
 
@@ -73,8 +74,13 @@ type LoginUserRequest struct {
 
 // LoginUserResponse is the response object for the LoginUser endpoint.
 type LoginUserResponse struct {
-	Auth string            `header:"Authorization" doc:"The Auth token of the requested user. Obtain using the '/login' endpoint."`
-	Body TokenResponseBody `json:"body" doc:"Content of the response."`
+	Authorization string            `header:"Authorization" doc:"The Auth token of the requested user. Obtain using the '/login' endpoint." example:"Bearer token"`
+	Body          TokenResponseBody `json:"body" doc:"Content of the response."`
+}
+
+// LogoutUserRequest is the request object for the LogoutUser endpoint.
+type LogoutUserRequest struct {
+	Authorization string `header:"Authorization" doc:"The Auth token of the requested user. Obtain using the '/login' endpoint." example:"Bearer token"`
 }
 
 // LogoutUserResponse is the response object for the LogoutUser endpoint.
@@ -82,10 +88,18 @@ type LogoutUserResponse struct {
 	Body struct{} `json:"body" doc:"Content of the response."`
 }
 
+// GetUserPermissionRequest is the request object for the GetUserPermission endpoint.
+type GetUserPermissionRequest LogoutUserRequest
+
+// GetUserPermissionResponse is the response object for the GetUserPermission endpoint.
+type GetUserPermissionResponse struct {
+	Body users.Privileges `json:"privileges" doc:"The privileges of the user."`
+}
+
 // GetKeyRequest is the request object for the GetKey endpoint.
 type GetKeyRequest struct {
-	Auth string `header:"Authorization" doc:"The Auth token of the requested user. Obtain using the '/login' endpoint."`
-	Key  string `path:"key" maxLength:"1024" example:"myObjectKey" doc:"The object key of the desired delivery. Obtain this from the sender."`
+	Authorization string `header:"Authorization" doc:"The Auth token of the requested user. Obtain using the '/login' endpoint." example:"Bearer token"`
+	Key           string `path:"key" maxLength:"1024" example:"myObjectKey" doc:"The object key of the desired delivery. Obtain this from the sender."`
 }
 
 // GetKeyResponse is the response object for the GetKey endpoint.
@@ -96,9 +110,9 @@ type GetKeyResponse struct {
 
 // PutKeyRequest is the request object for the PutKey endpoint.
 type PutKeyRequest struct {
-	Auth    string `header:"Authorization" doc:"The Auth token of the requested user. Obtain using the '/login' endpoint."`
-	Key     string `path:"key" maxLength:"1024" example:"myObjectKey" doc:"The object key of the desired delivery. Obtain this from the sender."`
-	RawBody []byte
+	Authorization string `header:"Authorization" doc:"The Auth token of the requested user. Obtain using the '/login' endpoint." example:"Bearer token"`
+	Key           string `path:"key" maxLength:"1024" example:"myObjectKey" doc:"The object key of the desired delivery. Obtain this from the sender."`
+	RawBody       []byte
 }
 
 // GetKeyResponse is the response object for the GetKey endpoint.

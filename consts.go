@@ -31,3 +31,36 @@ service.
 
 By using this service, you agree to these terms.
 `
+
+const loopbackOnly = `
+
+> **Note**
+> 
+> This endpoint is only accessible from the loopback address, i.e. by
+> making the request from host machine using '127.0.0.1' or 'localhost' as the
+> remote address. This is to minimise unauthorized access to the user management
+> system.
+`
+
+const requiresBearerAuth = `
+
+> **Note**
+>
+> This endpoint requires a valid Bearer token to be provided in the
+> 'Authorization' header. The token should be in the format:
+> <pre>Bearer &lt;token&gt;</pre>
+>
+> This token can be obtained by logging in to the system via the
+> <a href="/paths/login/post">/login</a> endpoint.
+`
+
+const userPermissionsNote = `
+
+The provided authorization token must have the correct permissions to perform
+the requested action. Use <a href="/paths/user-permission/get">/user/permission</a>
+endpoint to check your permissions.
+
+Permissions are handled on a per-key basis. The first user to create a key is
+considered the owner of that key; and your permissions to read, insert, update or
+delete data are based on whether you are the owner of the key.
+`
