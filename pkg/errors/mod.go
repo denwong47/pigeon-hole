@@ -30,6 +30,8 @@ var ErrTokenGeneration = errors.New("TokenGeneration")
 var ErrTokenInvalid = errors.New("TokenInvalid")
 var ErrTokenExpired = errors.New("TokenExpired")
 
+var ErrOperationTimeout = errors.New("OperationTimeout")
+
 func Matches(candidate error, target error) bool {
 	return errors.Is(candidate, target)
 }

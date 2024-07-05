@@ -34,7 +34,7 @@ func main() {
 			"BearerAuth": {
 				Type:         "http",
 				Scheme:       "bearer",
-				BearerFormat: "Hex",
+				BearerFormat: "base64",
 			},
 		}
 		api := humachi.New(router, config)
@@ -62,14 +62,26 @@ func main() {
 		api.UseMiddleware(interfaces.PassThroughRemoteHost)
 		api.UseMiddleware(interfaces.PassThroughAuthorizationToken(authManager))
 
-		// Add the User endpoints
+		// Add the User endpoints.
+		// These endpoints will have a minimum return time of 1 second to
+		// prevent timing attacks, and will only be accessible from the loopback
+		// address.
 
 		// `AddUser``
-		huma.Put(api, "/user", interfaces.MustBeCalledFromLoopBack(interfaces.UsesAuthManager(authManager, interfaces.AddUser)))
+		huma.Put(api, "/user", interfaces.MinimumTimeReturn(
+			time.Second,
+			interfaces.MustBeCalledFromLoopBack(interfaces.UsesAuthManager(authManager, interfaces.AddUser)),
+		))
 		// `RemoveUser``
-		huma.Delete(api, "/user", interfaces.MustBeCalledFromLoopBack(interfaces.UsesAuthManager(authManager, interfaces.RemoveUser)))
+		huma.Delete(api, "/user", interfaces.MinimumTimeReturn(
+			time.Second,
+			interfaces.MustBeCalledFromLoopBack(interfaces.UsesAuthManager(authManager, interfaces.RemoveUser)),
+		))
 		// `LoginUser``
-		huma.Post(api, "/login", interfaces.UsesAuthManager(authManager, interfaces.LoginUser))
+		huma.Post(api, "/login", interfaces.MinimumTimeReturn(
+			time.Second,
+			interfaces.UsesAuthManager(authManager, interfaces.LoginUser),
+		))
 		// `LogoutUser``
 		huma.Get(api, "/logout", interfaces.UsesAuthManager(authManager, interfaces.LogoutUser))
 
@@ -83,7 +95,10 @@ func main() {
 		// `PutKey``
 		huma.Put(api, "/key/{key}", interfaces.UsesAuthManagerAndKeyValueCache(authManager, &kvc, interfaces.PutKey))
 		// `PostKey``
-		huma.Post(api, "/key/{key}", interfaces.UsesAuthManagerAndKeyValueCache(authManager, &kvc, interfaces.PostKey))
+		huma.Post(api, "/key/{key}", interfaces.MaximumTimeReturn(
+			time.Second*15,
+			interfaces.UsesAuthManagerAndKeyValueCache(authManager, &kvc, interfaces.PostKey)),
+		)
 		// `DeleteKey``
 		huma.Delete(api, "/key/{key}", interfaces.UsesAuthManagerAndKeyValueCache(authManager, &kvc, interfaces.DeleteKey))
 

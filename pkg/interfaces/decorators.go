@@ -2,6 +2,10 @@ package interfaces
 
 import (
 	"context"
+	"log"
+	"reflect"
+	"runtime"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/denwong47/pigeon-hole/pkg/auth"
@@ -43,5 +47,77 @@ func MustBeCalledFromLoopBack[T, R any](handler EndpointHandler[T, R]) EndpointH
 			)
 		}
 		return handler(ctx, input)
+	}
+}
+
+// Waiter function.
+func timeout(duration time.Duration, channel chan bool) {
+	time.Sleep(duration)
+	channel <- true
+}
+
+// Minimum time return.
+//
+// The decorated function will not return until the minimum time has passed. This may
+// include sleeping if the time has not yet passed.
+//
+// This is to prevent timing attacks on passwords etc.
+func MinimumTimeReturn[T, R any](
+	duration time.Duration,
+	handler EndpointHandler[T, R],
+) EndpointHandler[T, R] {
+	return func(ctx context.Context, input *T) (*R, error) {
+		channel := make(chan bool)
+		go timeout(duration, channel)
+
+		result, err := handler(ctx, input)
+
+		<-channel
+		return result, err
+	}
+}
+
+// Get the name of a function.
+func getFunctionName(f interface{}) string {
+	return runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
+}
+
+// Abort the request if the results had not been returned within the specified duration.
+func MaximumTimeReturn[T, R any](
+	duration time.Duration,
+	handler EndpointHandler[T, R],
+) EndpointHandler[T, R] {
+	return func(ctx context.Context, input *T) (*R, error) {
+		ctx, cancelFunc := context.WithTimeout(ctx, duration)
+		defer cancelFunc()
+
+		chR := make(chan *R)
+		chErr := make(chan error)
+
+		go func() {
+			result, err := handler(ctx, input)
+			if err != nil {
+				chErr <- err
+			} else {
+				chR <- result
+			}
+		}()
+
+		select {
+		case result := <-chR:
+			return result, nil
+		case err := <-chErr:
+			return nil, err
+		case <-ctx.Done():
+			log.Printf(
+				"Operation `%s` took too long to process, cancelling after %v.\n",
+				getFunctionName(handler),
+				duration,
+			)
+			return nil, huma.Error504GatewayTimeout(
+				"The request took too long to process. Please check if the request is valid.",
+				errorMessages.ErrOperationTimeout,
+			)
+		}
 	}
 }
