@@ -45,6 +45,8 @@ func main() {
 			Email: "denwong47@hotmail.com",
 			URL:   "https://github.com/denwong47/pigeon-hole",
 		}
+		log.Printf("Starting PigeonHole service...\n")
+		log.Printf("Put operations will be limited to %v.\n", options.Timeout)
 
 		userOptions := users.UserOptions{
 			// TODO Move this into a configuration file
@@ -73,7 +75,7 @@ func main() {
 			interfaces.MustBeCalledFromLoopBack(interfaces.UsesAuthManager(authManager, interfaces.AddUser)),
 		))
 		// `RemoveUser``
-		huma.Delete(api, "/user", interfaces.MinimumTimeReturn(
+		huma.Delete(api, "/user/{email}", interfaces.MinimumTimeReturn(
 			time.Second,
 			interfaces.MustBeCalledFromLoopBack(interfaces.UsesAuthManager(authManager, interfaces.RemoveUser)),
 		))
@@ -91,12 +93,18 @@ func main() {
 		// `GetKey``
 		huma.Get(api, "/key/{key}", interfaces.UsesAuthManagerAndKeyValueCache(authManager, &kvc, interfaces.GetKey))
 		// `PatchKey``
-		huma.Patch(api, "/key/{key}", interfaces.UsesAuthManagerAndKeyValueCache(authManager, &kvc, interfaces.PatchKey))
+		huma.Patch(api, "/key/{key}", interfaces.MaximumTimeReturn(
+			options.Timeout,
+			interfaces.UsesAuthManagerAndKeyValueCache(authManager, &kvc, interfaces.PatchKey)),
+		)
 		// `PutKey``
-		huma.Put(api, "/key/{key}", interfaces.UsesAuthManagerAndKeyValueCache(authManager, &kvc, interfaces.PutKey))
+		huma.Put(api, "/key/{key}", interfaces.MaximumTimeReturn(
+			options.Timeout,
+			interfaces.UsesAuthManagerAndKeyValueCache(authManager, &kvc, interfaces.PutKey)),
+		)
 		// `PostKey``
 		huma.Post(api, "/key/{key}", interfaces.MaximumTimeReturn(
-			time.Second*15,
+			options.Timeout,
 			interfaces.UsesAuthManagerAndKeyValueCache(authManager, &kvc, interfaces.PostKey)),
 		)
 		// `DeleteKey``

@@ -46,8 +46,8 @@ func RemoveUser(
 	authManager *auth.AuthManager,
 	input *RemoveUserRequest,
 ) (*RemoveUserResponse, error) {
-	if user, err := authManager.RemoveUser(input.Body.Email); err != nil {
-		return &RemoveUserResponse{}, huma.Error400BadRequest(fmt.Sprintf("Failed to remove user '%s'.", input.Body.Email), err)
+	if user, err := authManager.RemoveUser(input.Email); err != nil {
+		return &RemoveUserResponse{}, huma.Error400BadRequest(fmt.Sprintf("Failed to remove user '%s'.", input.Email), err)
 	} else {
 		log.Printf("Removed user '%s' with UUID `%s`, user list %s now has %d users.\n", user.Name, user.Uuid, authManager.Name, authManager.Length())
 		return &RemoveUserResponse{}, nil

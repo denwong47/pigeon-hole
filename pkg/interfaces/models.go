@@ -37,7 +37,7 @@ type AddUserRequest struct {
 	Body struct {
 		Name     string `json:"name" doc:"The name of the user to add." required:"true" minLength:"1" maxLength:"1024"`
 		Email    string `json:"email" format:"email" doc:"The email of the user to add." required:"true" minLength:"1" maxLength:"1024"`
-		Password string `json:"password" doc:"The password of the user to add." required:"true" minLength:"8"`
+		Password string `json:"password" doc:"The password of the user to add." required:"true" minLength:"8" example:"mySamplePasswordChangeBeforeUse"`
 		Type     string `json:"type" enum:"admin,standard,restricted" doc:"The kind of user to add; this governs the privileges of the user."`
 	}
 }
@@ -55,9 +55,7 @@ type TokenResponseBody struct {
 
 // RemoveUserRequest is the request object for the RemoveUser endpoint.
 type RemoveUserRequest struct {
-	Body struct {
-		Email string `json:"email" format:"email" doc:"The email of the user to remove." required:"true" minLength:"1" maxLength:"1024"`
-	}
+	Email string `path:"email" format:"email" doc:"The email of the user to remove." required:"true" minLength:"1" maxLength:"1024" example:"user@example.com"`
 }
 
 // RemoveUserResponse is the response object for the RemoveUser endpoint.
@@ -69,7 +67,7 @@ type RemoveUserResponse struct {
 type LoginUserRequest struct {
 	Body struct {
 		Email    string `json:"email" format:"email" doc:"The email of the user to login." required:"true" minLength:"1" maxLength:"1024"`
-		Password string `json:"password" doc:"The password of the user to login." required:"true" minLength:"8"`
+		Password string `json:"password" doc:"The password of the user to login." required:"true" minLength:"8" example:"mySamplePasswordChangeBeforeUse"`
 	}
 }
 
